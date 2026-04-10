@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
     "type": "Notebook",
-    "displayName": "bronze_hubspot_objects_ingestion"
+    "displayName": "companies_silver"
   },
   "config": {
     "version": "2.0",
-    "logicalId": "3cc7cdc5-cab2-8620-43f7-20179161620b"
+    "logicalId": "e3812c48-0faf-abe3-4a7f-ec5de24e5115"
   }
 }
