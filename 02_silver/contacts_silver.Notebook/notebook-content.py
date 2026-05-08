@@ -31,6 +31,21 @@
 
 # CELL ********************
 
+from pyspark.sql.functions import to_timestamp, col
+from pyspark.sql.functions import when
+from pyspark.sql.functions import count, sum
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 df_raw = spark.read.option("multiline", "true").json("Files/bronze/hubspot/contacts")
 
 # METADATA ********************
@@ -41,30 +56,6 @@ df_raw = spark.read.option("multiline", "true").json("Files/bronze/hubspot/conta
 # META }
 
 # CELL ********************
-
-display(df_raw)
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-df_raw.printSchema()
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-from pyspark.sql.functions import col
 
 df_flat = df_raw.select(
     col("id").alias("contact_id"),
@@ -86,7 +77,13 @@ df_flat = df_raw.select(
 
 # CELL ********************
 
-display(df_flat)
+date_columns = ["updated_date", "create_date"]
+
+for c in date_columns:
+    df_flat = df_flat.withColumn(
+        c,
+        to_timestamp(col(c), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    )
 
 # METADATA ********************
 
@@ -97,9 +94,23 @@ display(df_flat)
 
 # CELL ********************
 
-from pyspark.sql.functions import when
+window_spec = Window.partitionBy("contact_id") \
+    .orderBy(col("updated_date").desc())
 
-df_silver = df_flat \
+df_latest = df_flat.withColumn("rn", row_number().over(window_spec)) \
+              .filter(col("rn") == 1) \
+              .drop("rn") 
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+df_silver = df_latest \
     .withColumn("is_missing_id", when(col("contact_id").isNull(), 1).otherwise(0)) \
     .withColumn("is_missing_email", when(col("email_id").isNull(), 1).otherwise(0)) \
     .withColumn("is_missing_firstname", when(col("first_name").isNull(), 1).otherwise(0)) \
@@ -115,7 +126,6 @@ df_silver = df_flat \
 
 # CELL ********************
 
-from pyspark.sql.functions import count, sum
 df_silver.select(
     count("*").alias("total_count"),
     sum("is_missing_email").alias("total_email"),

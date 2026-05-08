@@ -33,7 +33,7 @@
 
 hubspot_properties = {
     "contacts": {
-        "properties": ["email", "firstname", "lastname", "phone", "lifecyclestage", ],
+        "properties": ["email", "firstname", "lastname", "phone"],
         "lastmodified_field": "lastmodifieddate"
     },
     "companies": {

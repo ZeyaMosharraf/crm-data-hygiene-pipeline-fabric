@@ -135,7 +135,7 @@ def fetch_object(object_type, after=None, last_updated=None, limit: int = 100):
     }
 
     try:                                   
-        if last_updated:
+        if last_updated and after is None:
             url = f"{creds['base_url']}/crm/v3/objects/{object_type}/search"
 
             dt = datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
