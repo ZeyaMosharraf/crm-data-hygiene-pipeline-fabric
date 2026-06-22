@@ -70,6 +70,19 @@ import os
 
 # CELL ********************
 
+notebook_start = time.time()
+print("Notebook Started")
+print(datetime.now())
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
 def get_hubspot_session():
     
     session = requests.Session()
@@ -156,7 +169,16 @@ def fetch_object(object_type, after=None, last_updated=None, limit: int = 100):
             if after:
                 body["after"] = after
 
+            api_start = time.time()
+
             response = session.post(url, headers=headers, json=body, timeout=30)
+
+            api_end = time.time()
+
+            print(
+            f"{object_type} Search API Time: "
+            f"{round(api_end - api_start, 2)} sec"
+            )
 
         else:
             url = f"{creds['base_url']}/crm/v3/objects/{object_type}"
@@ -169,10 +191,19 @@ def fetch_object(object_type, after=None, last_updated=None, limit: int = 100):
             if after:
                 params["after"] = after
 
+            api_start = time.time()
+
             response = session.get(url, headers=headers, params=params, timeout=30)
 
+            api_end = time.time()
+
+            print(
+            f"{object_type} GET API Time: "
+            f"{round(api_end - api_start, 2)} sec"
+            )
+
         if not response.ok:
-            print(f"❌ Request failed!")
+            print(f"Request failed!")
             print(f"Response:", response.text)
 
         response.raise_for_status()
@@ -201,7 +232,7 @@ def fetch_object(object_type, after=None, last_updated=None, limit: int = 100):
         }
 
     except Exception as e:               
-        print(f"❌ Error fetching {object_type}: {str(e)}")
+        print(f"Error fetching {object_type}: {str(e)}")
         if 'response' in locals():
             print("Response status:", response.status_code)
             print("Response error:", response.text)
@@ -233,10 +264,16 @@ def save_to_bronze(object_type, data):
     file_name = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     file_path = f"{folder_path}/{file_name}.json"
 
+    save_start = time.time()
+
     with open(file_path, "w") as f:
         json.dump(data, f)
 
     print(f"Saved {len(data)} records → {file_name}")
+    save_end = time.time()
+    print(f"{object_type} Save Time: " 
+        f"{round(save_end - save_start, 2)} sec"
+        )
 
 # METADATA ********************
 
@@ -308,6 +345,7 @@ def run_ingestion(object_type):
     total_records = 0
     batch_count = 0
     max_updated = last_updated
+    api_calls = 0
 
     while True:
 
@@ -315,6 +353,7 @@ def run_ingestion(object_type):
 
         data = result["data"]
         after = result["next_after"]
+        api_calls += 1
 
         if not data:
             break
@@ -351,6 +390,7 @@ def run_ingestion(object_type):
     print(f"Last Updated  : {max_updated}")
     print(f"Time Taken    : {round(end_time - start_time, 2)} sec")
     print("="*40)
+    print(f"API Calls     : {api_calls}")
 
 # METADATA ********************
 
@@ -379,6 +419,22 @@ def run_all_objects():
 # CELL ********************
 
 run_all_objects()
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+notebook_end = time.time()
+
+print(
+    f"Notebook Runtime: "
+    f"{round(notebook_end - notebook_start, 2)} sec"
+)
 
 # METADATA ********************
 
